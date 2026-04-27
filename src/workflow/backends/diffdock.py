@@ -32,7 +32,7 @@ def _score_one_diffdock(
     ext_cmd: str | None,
 ) -> dict[str, object]:
     spec = json.loads(pocket_spec_path.read_text(encoding="utf-8"))
-    cid = str(getattr(row, "compound_id"))
+    cid = str(row.compound_id)
     pose = poses_dir / f"{cid}_diffdock.pdb"
     if ext_cmd:
         with tempfile.TemporaryDirectory() as td:
