@@ -54,9 +54,11 @@ class FpocketConfig(BaseModel):
 class DockingConfig(BaseModel):
     """Physics-based (e.g. Vina/GNINA) vs ML-based (e.g. DiffDock) docking.
 
-    * ``physics_only`` / ``ml_only`` — single family; artifacts match the classic layout when one family.
-    * ``both`` — run both in tandem; writes per-family tables plus a merged ``docking_scores.parquet``
-      with a primary ``score`` chosen by ``ranking_when_both`` for evolution and summaries.
+    * ``physics_only`` / ``ml_only`` — single family; artifacts match the classic layout when one
+      family.
+    * ``both`` — run both in tandem; writes per-family tables plus a merged
+      ``docking_scores.parquet`` with a primary ``score`` chosen by ``ranking_when_both`` for
+      evolution and summaries.
     """
 
     mode: Literal["physics_only", "ml_only", "both"] = "physics_only"

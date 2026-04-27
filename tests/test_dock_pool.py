@@ -12,7 +12,7 @@ from workflow.steps.tier_b import run_tier_b
 
 def _minimal_hits(tmp: Path) -> None:
     pub = tmp / "pubchem"
-    pub.mkdir(parents=True)
+    pub.mkdir(parents=True, exist_ok=True)
     pd.DataFrame(
         [
             {

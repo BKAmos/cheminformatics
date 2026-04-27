@@ -1,8 +1,8 @@
 """Pytest configuration."""
 
+import re
 from pathlib import Path
 
-import httpx
 import pandas as pd
 import pytest
 
@@ -16,13 +16,16 @@ _PUBCHEM_BODY = {
     }
 }
 
+_PUBCHEM_RE = re.compile(r"^https://pubchem\.ncbi\.nlm\.nih\.gov/.+")
+
 
 @pytest.fixture
-def mock_pubchem(httpx_mock):
-    def _handler(request: httpx.Request) -> httpx.Response:
-        return httpx.Response(200, json=_PUBCHEM_BODY)
-
-    httpx_mock.add_callback(_handler)
+def mock_pubchem(httpx_mock) -> object:
+    httpx_mock.add_response(
+        url=_PUBCHEM_RE,
+        json=_PUBCHEM_BODY,
+        is_reusable=True,
+    )
     return httpx_mock
 
 

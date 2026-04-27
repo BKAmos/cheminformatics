@@ -1,8 +1,6 @@
 import json
 from pathlib import Path
 
-import pytest
-
 from workflow.config_load import load_workflow_config
 from workflow.pipeline import run_pipeline
 

@@ -1,0 +1,36 @@
+# Local development: use real fpocket (not the CI stub) on the prepared receptor.
+# Prerequisite: `fpocket` on PATH, or set `fpocket.executable` to a full path (see contracts).
+# On Linux, typical install: conda install -c bioconda -c conda-forge fpocket
+# Windows: use WSL/Docker, or build from source; fpocket is not always packaged for win-64.
+# Paths are relative to this file (cf. example.yaml / ci.yaml).
+
+library_csv: ../data/library.csv
+receptor_pdb: ../data/toy.pdb
+profile: default
+skip_evolution: true
+skip_mutation: true
+dry_run: false
+
+resources:
+  max_parallel_docks: 1
+  max_parallel_http: 1
+
+pubchem:
+  max_hits_per_query: 5
+  similarity_threshold: 0.7
+
+dock_pool:
+  mode: max_compounds
+  max_compounds_to_dock: 20
+
+fpocket:
+  # Explicit fpocket mode (optional; use_stub_box: false also selects fpocket).
+  mode: fpocket
+  use_stub_box: false
+  top_k_pockets: 1
+  box_padding_angstrom: 4.0
+  # executable: C:/path/to/fpocket.exe   # if not on PATH
+
+docking:
+  physics_backend: mock
+  ml_backend: mock

@@ -3,13 +3,13 @@
 from __future__ import annotations
 
 import time
-import shutil
 from pathlib import Path
 
 import pandas as pd
 
 from workflow.contracts import WorkflowConfig
 from workflow.logging_utils import log_step
+from workflow.obabel_resolve import obabel_argv0
 from workflow.subprocess_runner import run_cmd
 
 
@@ -21,7 +21,9 @@ def run_ligand_prep(paths: dict[str, Path], cfg: WorkflowConfig) -> Path:
     out_txt = lig_dir / "ligands.smi"
     lines = [f"{row.hit_smiles}\t{row.compound_id}" for row in pool.itertuples()]
     out_txt.write_text("\n".join(lines), encoding="utf-8")
-    index_rows: list[dict[str, str | None]] = [{"compound_id": str(r.compound_id), "ligand_pdbqt_path": None} for r in pool.itertuples()]
+    index_rows: list[dict[str, str | None]] = [
+        {"compound_id": str(r.compound_id), "ligand_pdbqt_path": None} for r in pool.itertuples()
+    ]
 
     try:
         from rdkit import Chem
@@ -39,8 +41,8 @@ def run_ligand_prep(paths: dict[str, Path], cfg: WorkflowConfig) -> Path:
         pass
 
     # Optional fast path for Vina: precompute ligand PDBQT and persist paths.
-    obabel = shutil.which("obabel")
-    if obabel:
+    ob = obabel_argv0()
+    if ob:
         pdbqt_dir = paths["ligands"] / "prepared_pdbqt"
         pdbqt_dir.mkdir(parents=True, exist_ok=True)
         smi_dir = paths["ligands"] / "prepared_smi"
@@ -52,7 +54,7 @@ def run_ligand_prep(paths: dict[str, Path], cfg: WorkflowConfig) -> Path:
             pdbqt = pdbqt_dir / f"{cid}.pdbqt"
             smi.write_text(f"{row.hit_smiles}\t{cid}\n", encoding="utf-8")
             cp = run_cmd(
-                [obabel, "-ismi", str(smi), "-opdbqt", "-O", str(pdbqt), "--gen3d"],
+                [*ob, "-ismi", str(smi), "-opdbqt", "-O", str(pdbqt), "--gen3d"],
                 timeout_s=120.0,
             )
             if cp.returncode == 0 and pdbqt.exists():
@@ -71,5 +73,11 @@ def run_ligand_prep(paths: dict[str, Path], cfg: WorkflowConfig) -> Path:
     pool2 = pool.merge(idx_df, on="compound_id", how="left")
     pool2.to_parquet(paths["filters"] / "dock_pool.parquet", index=False)
 
-    log_step(paths, "ligand_prep", time.perf_counter() - t0, input_count=len(pool), output_count=len(pool))
+    log_step(
+        paths,
+        "ligand_prep",
+        time.perf_counter() - t0,
+        input_count=len(pool),
+        output_count=len(pool),
+    )
     return out_txt

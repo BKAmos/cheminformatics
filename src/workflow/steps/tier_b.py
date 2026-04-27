@@ -37,5 +37,11 @@ def run_tier_b(paths: dict[str, Path], cfg: WorkflowConfig) -> Path:
     df = pd.DataFrame(rows)
     out = paths["filters"] / "tier_b_rationale.parquet"
     df.to_parquet(out, index=False)
-    log_step(paths, "tier_b", time.perf_counter() - t0, input_count=len(merged), output_count=len(df))
+    log_step(
+        paths,
+        "tier_b",
+        time.perf_counter() - t0,
+        input_count=len(merged),
+        output_count=len(df),
+    )
     return out

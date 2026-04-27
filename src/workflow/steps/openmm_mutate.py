@@ -29,7 +29,8 @@ def _resname_at(pdb_path: Path, residue: MutationResidue) -> str:
             continue
         return line[17:20].strip()
     raise ValueError(
-        f"No ATOM/HETATM residue found for chain={want_chain!r} resseq={residue.resseq} in {pdb_path}"
+        f"No ATOM/HETATM residue found for chain={want_chain!r} "
+        f"resseq={residue.resseq} in {pdb_path}"
     )
 
 

@@ -2,13 +2,14 @@
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
 
-import httpx
 import pandas as pd
+import pytest
 
 from workflow.config_load import load_workflow_config
-from workflow.contracts import DockingConfig
+from workflow.contracts import DockingConfig, DockPoolCapConfig
 from workflow.docking_run import (
     merge_docking_results,
     merge_multipocket_merged_frames,
@@ -24,6 +25,8 @@ _PUBCHEM_JSON = {
         ]
     }
 }
+
+_PUBCHEM_RE = re.compile(r"^https://pubchem\.ncbi\.nlm\.nih\.gov/.+")
 
 
 def test_merge_multipocket_keeps_best_score_per_compound() -> None:
@@ -98,8 +101,13 @@ def test_run_configured_docking_ml_only(tmp_path: Path, repo_root: Path) -> None
     assert not (poses / "docking_scores_physics.parquet").exists()
 
 
-def test_pipeline_tandem_writes_sidecars(tmp_path: Path, repo_root: Path, httpx_mock) -> None:
-    httpx_mock.add_callback(lambda _r: httpx.Response(200, json=_PUBCHEM_JSON))
+def test_pipeline_tandem_writes_sidecars(
+    tmp_path: Path, repo_root: Path, httpx_mock, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    httpx_mock.add_response(url=_PUBCHEM_RE, json=_PUBCHEM_JSON, is_reusable=True)
+    # Avoid running Open Babel in this E2E (keeps the run fast and deterministic in CI);
+    # docking mocks do not need prepared PDBQT files.
+    monkeypatch.setattr("workflow.steps.ligand_prep.obabel_argv0", lambda: None)
 
     cfg = load_workflow_config(repo_root / "configs" / "ci.yaml")
     cfg = cfg.model_copy(
@@ -107,6 +115,7 @@ def test_pipeline_tandem_writes_sidecars(tmp_path: Path, repo_root: Path, httpx_
             "library_csv": repo_root / "data" / "library.csv",
             "receptor_pdb": repo_root / "data" / "toy.pdb",
             "docking": DockingConfig(mode="both", physics_backend="mock", ml_backend="mock"),
+            "dock_pool": DockPoolCapConfig(mode="max_compounds", max_compounds_to_dock=2),
         }
     )
     run_dir = tmp_path / "tandem"

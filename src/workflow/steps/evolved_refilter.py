@@ -50,8 +50,12 @@ def run_evolved_refilter(paths: dict[str, Path], cfg: WorkflowConfig) -> None:
                 "tier_b_provenance_json": json.dumps({"source": "evolved_refilter"}),
             }
         )
-    pd.DataFrame(rows_a).to_parquet(paths["filters"] / "evolved_tier_a_rationale.parquet", index=False)
-    pd.DataFrame(rows_b).to_parquet(paths["filters"] / "evolved_tier_b_rationale.parquet", index=False)
+    pd.DataFrame(rows_a).to_parquet(
+        paths["filters"] / "evolved_tier_a_rationale.parquet", index=False
+    )
+    pd.DataFrame(rows_b).to_parquet(
+        paths["filters"] / "evolved_tier_b_rationale.parquet", index=False
+    )
     log_step(paths, "evolved_refilter", time.perf_counter() - t0, output_count=len(rows_b))
 
 

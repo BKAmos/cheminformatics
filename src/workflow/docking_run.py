@@ -53,7 +53,9 @@ def merge_docking_results(
         else:
             merged["score"] = merged["score_ml"]
             merged["pose_path"] = merged["pose_path_ml"]
-        merged["backend"] = merged["backend_physics"].astype(str) + "|" + merged["backend_ml"].astype(str)
+        merged["backend"] = (
+            merged["backend_physics"].astype(str) + "|" + merged["backend_ml"].astype(str)
+        )
         return merged
 
     raise ValueError(f"Unknown docking mode: {mode!r}")
@@ -158,7 +160,7 @@ def run_configured_docking_with_pockets(
     if not ranked_path.is_file():
         pocket = structure_dir / "pocket_spec.json"
         validate_pocket_spec_file(pocket)
-        m, p, l = run_configured_docking(
+        mrg, p_df, m_df = run_configured_docking(
             cfg,
             dock_pool=dock_pool,
             receptor_pdb=receptor_pdb,
@@ -166,15 +168,19 @@ def run_configured_docking_with_pockets(
             poses_root=poses_root,
             score_offset=score_offset,
         )
-        return m, p, l, False
+        return mrg, p_df, m_df, False
 
-    ranked = pd.read_parquet(ranked_path).sort_values("rank", kind="mergesort").reset_index(drop=True)
+    ranked = (
+        pd.read_parquet(ranked_path)
+        .sort_values("rank", kind="mergesort")
+        .reset_index(drop=True)
+    )
     k = effective_top_k_pockets(cfg)
     if len(ranked) <= 1 or k <= 1:
         row0 = ranked.iloc[0]
         pocket = structure_dir / str(row0["spec_file"])
         validate_pocket_spec_file(pocket)
-        m, p, l = run_configured_docking(
+        mrg, p_df, m_df = run_configured_docking(
             cfg,
             dock_pool=dock_pool,
             receptor_pdb=receptor_pdb,
@@ -182,7 +188,7 @@ def run_configured_docking_with_pockets(
             poses_root=poses_root,
             score_offset=score_offset,
         )
-        return m, p, l, False
+        return mrg, p_df, m_df, False
 
     merged_frames: list[pd.DataFrame] = []
     phys_frames: list[pd.DataFrame] = []
@@ -192,7 +198,7 @@ def run_configured_docking_with_pockets(
         validate_pocket_spec_file(pocket)
         pid = int(row["pocket_id"])
         pr = poses_root / f"_pocket_run_{pid}"
-        m, p, l = run_configured_docking(
+        mrg, p_df, m_df = run_configured_docking(
             cfg,
             dock_pool=dock_pool,
             receptor_pdb=receptor_pdb,
@@ -200,14 +206,14 @@ def run_configured_docking_with_pockets(
             poses_root=pr,
             score_offset=score_offset,
         )
-        m2 = m.copy()
+        m2 = mrg.copy()
         m2["fpocket_pocket_id"] = pid
         m2["fpocket_pocket_rank"] = int(row["rank"])
         merged_frames.append(m2)
-        if p is not None:
-            phys_frames.append(p)
-        if l is not None:
-            ml_frames.append(l)
+        if p_df is not None:
+            phys_frames.append(p_df)
+        if m_df is not None:
+            ml_frames.append(m_df)
 
     merged = merge_multipocket_merged_frames(merged_frames)
     phys_out = pd.concat(phys_frames, ignore_index=True) if phys_frames else None

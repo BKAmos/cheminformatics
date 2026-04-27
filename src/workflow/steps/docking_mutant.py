@@ -40,5 +40,11 @@ def run_dock_mutant(paths: dict[str, Path], cfg: WorkflowConfig) -> Path:
     mrg["delta_score"] = mrg["score_mut"] - mrg["score_wt"]
     mrg.to_parquet(paths["poses_mutant"] / "delta_scores.parquet", index=False)
 
-    log_step(paths, "docking_mutant", time.perf_counter() - t0, input_count=len(pool), output_count=len(merged))
+    log_step(
+        paths,
+        "docking_mutant",
+        time.perf_counter() - t0,
+        input_count=len(pool),
+        output_count=len(merged),
+    )
     return out

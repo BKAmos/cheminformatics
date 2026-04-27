@@ -12,3 +12,5 @@ scratch/
 venv/
 *.parquet
 notebooks/.ipynb_checkpoints/
+# Optional vendored binary (e.g. download vina_*.exe to tools/vina.exe)
+tools/vina.exe

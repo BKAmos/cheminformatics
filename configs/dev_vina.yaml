@@ -1,0 +1,35 @@
+# Local Vina + (Open Babel) E2E: small dock pool, stub pocket box, physics-only Vina.
+# Prerequisite: `vina` and `obabel` on PATH (see tools/ for a Python-based obabel shim on Windows).
+# Paths are relative to this file.
+
+library_csv: ../data/library.csv
+receptor_pdb: ../data/toy.pdb
+profile: default
+skip_evolution: true
+skip_mutation: true
+dry_run: false
+
+resources:
+  max_parallel_docks: 1
+  max_parallel_http: 1
+
+pubchem:
+  max_hits_per_query: 5
+  similarity_threshold: 0.7
+
+dock_pool:
+  mode: max_compounds
+  max_compounds_to_dock: 3
+
+fpocket:
+  use_stub_box: true
+  stub_center: [0.0, 0.0, 0.0]
+  stub_size: [15.0, 15.0, 15.0]
+  top_k_pockets: 1
+
+docking:
+  mode: physics_only
+  physics_backend: vina
+  ml_backend: mock
+  vina_seed: 42
+  vina_exhaustiveness: 2

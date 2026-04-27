@@ -77,7 +77,7 @@ def discover_fpocket_output_dirs(fpocket_raw: Path, receptor_stem: str) -> list[
     direct = fpocket_raw / f"{receptor_stem}_out"
     if direct.is_dir():
         candidates.append(direct)
-    for p in sorted(fpocket_raw.glob(f"*_out")):
+    for p in sorted(fpocket_raw.glob("*_out")):
         if p.is_dir() and p not in candidates:
             candidates.append(p)
     return candidates

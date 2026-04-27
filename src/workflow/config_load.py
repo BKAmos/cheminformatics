@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any
 
 import yaml
+
 from workflow.contracts import WorkflowConfig
 
 

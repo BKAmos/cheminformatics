@@ -10,17 +10,26 @@ from pathlib import Path
 
 import pandas as pd
 
+from workflow.obabel_resolve import obabel_argv0
 from workflow.subprocess_runner import run_cmd
 
 _VINA_SCORE_RE = re.compile(r"^\s*\d+\s+(-?\d+(?:\.\d+)?)\s+")
+# Vina 1.2+ sometimes prints: "   1     -5.2      0.000      0.000" (no fourth column in match)
+_AFFINITY_RE = re.compile(
+    r"(?:^|\n)\s*1\s+(-?\d+(?:\.\d+)?)\b",
+    re.MULTILINE,
+)
 
 
 def parse_vina_score(text: str) -> float:
-    """Parse best affinity from Vina log/stdout table."""
+    """Parse best affinity from Vina 1.1 file log or 1.2+ stdout (mode table or summary)."""
     for line in text.splitlines():
         m = _VINA_SCORE_RE.match(line)
         if m:
             return float(m.group(1))
+    m2 = _AFFINITY_RE.search(text)
+    if m2:
+        return float(m2.group(1))
     raise ValueError("Could not parse Vina affinity from log output")
 
 
@@ -55,7 +64,7 @@ class VinaDockingBackend:
         center = spec.get("center", [0.0, 0.0, 0.0])
         size = spec.get("size", [20.0, 20.0, 20.0])
 
-        receptor_pdbqt = self._prepare_receptor_pdbqt(receptor_pdb, tmp_dir)
+        receptor_in = self._prepare_receptor_for_vina(receptor_pdb, tmp_dir)
         workers = max(1, int(max_parallel))
         rows: list[dict[str, object]] = []
         pool = dock_pool.sort_values("compound_id", kind="mergesort")
@@ -67,7 +76,7 @@ class VinaDockingBackend:
                     ex.submit(
                         self._dock_one,
                         vina_bin=vina_bin,
-                        receptor_pdbqt=receptor_pdbqt,
+                        receptor_in=receptor_in,
                         poses_dir=poses_dir,
                         logs_dir=logs_dir,
                         tmp_dir=tmp_dir,
@@ -83,19 +92,35 @@ class VinaDockingBackend:
         out = pd.DataFrame(rows)
         return out.sort_values("compound_id", kind="mergesort").reset_index(drop=True)
 
-    def _prepare_receptor_pdbqt(self, receptor_pdb: Path, tmp_dir: Path) -> Path:
-        if receptor_pdb.suffix.lower() == ".pdbqt":
+    def _prepare_receptor_for_vina(self, receptor_pdb: Path, tmp_dir: Path) -> Path:
+        suf = receptor_pdb.suffix.lower()
+        if suf == ".pdbqt":
             return receptor_pdb
-        obabel = shutil.which("obabel")
-        if not obabel:
+        if suf == ".pdb":
+            # Vina 1.2+ accepts rigid receptors as PDB but rejects some records (e.g. HEADER).
+            return self._atom_only_pdb_copy(receptor_pdb, tmp_dir)
+        ob = obabel_argv0()
+        if not ob:
             raise RuntimeError(
-                "Receptor is not PDBQT and Open Babel (`obabel`) is not available "
-                "to convert receptor to PDBQT."
+                "Receptor is not .pdb/.pdbqt and Open Babel (`obabel`) is not available."
             )
         out = tmp_dir / f"{receptor_pdb.stem}.pdbqt"
-        cp = run_cmd([obabel, "-ipdb", str(receptor_pdb), "-opdbqt", "-O", str(out)], timeout_s=120.0)
+        cp = run_cmd(
+            [*ob, "-ipdb", str(receptor_pdb), "-opdbqt", "-O", str(out)],
+            timeout_s=120.0,
+        )
         if cp.returncode != 0 or not out.exists():
             raise RuntimeError(f"Failed receptor PDBQT conversion: {cp.stderr}")
+        return out
+
+    def _atom_only_pdb_copy(self, receptor_pdb: Path, tmp_dir: Path) -> Path:
+        """Write a minimal PDB with only ATOM/HETATM lines for AutoDock Vina 1.2+."""
+        out = tmp_dir / f"{receptor_pdb.stem}_vina_receptor.pdb"
+        lines = receptor_pdb.read_text(encoding="utf-8", errors="replace").splitlines()
+        kept = [ln for ln in lines if ln.startswith(("ATOM", "HETATM"))]
+        if not kept:
+            raise RuntimeError(f"No ATOM/HETATM lines in receptor PDB: {receptor_pdb}")
+        out.write_text("\n".join(kept) + "\n", encoding="utf-8")
         return out
 
     def _prepare_ligand_pdbqt(self, row, tmp_dir: Path) -> Path:
@@ -110,15 +135,17 @@ class VinaDockingBackend:
                 f"Dock row {getattr(row, 'compound_id', 'unknown')} lacks hit_smiles "
                 "or ligand_pdbqt_path"
             )
-        obabel = shutil.which("obabel")
-        if not obabel:
-            raise RuntimeError("Open Babel (`obabel`) is required to build ligand PDBQT from SMILES")
-        cid = str(getattr(row, "compound_id"))
+        ob = obabel_argv0()
+        if not ob:
+            raise RuntimeError(
+                "Open Babel (`obabel`) is required to build ligand PDBQT from SMILES"
+            )
+        cid = str(row.compound_id)
         smi = tmp_dir / f"{cid}.smi"
         pdbqt = tmp_dir / f"{cid}.pdbqt"
         smi.write_text(f"{smiles}\t{cid}\n", encoding="utf-8")
         cp = run_cmd(
-            [obabel, "-ismi", str(smi), "-opdbqt", "-O", str(pdbqt), "--gen3d"],
+            [*ob, "-ismi", str(smi), "-opdbqt", "-O", str(pdbqt), "--gen3d"],
             timeout_s=120.0,
         )
         if cp.returncode != 0 or not pdbqt.exists():
@@ -129,7 +156,7 @@ class VinaDockingBackend:
         self,
         *,
         vina_bin: str,
-        receptor_pdbqt: Path,
+        receptor_in: Path,
         poses_dir: Path,
         logs_dir: Path,
         tmp_dir: Path,
@@ -139,14 +166,14 @@ class VinaDockingBackend:
         vina_seed: int,
         exhaustiveness: int,
     ) -> dict[str, object]:
-        cid = str(getattr(row, "compound_id"))
+        cid = str(row.compound_id)
         ligand_pdbqt = self._prepare_ligand_pdbqt(row, tmp_dir)
         out_pose = poses_dir / f"{cid}.pdbqt"
         out_log = logs_dir / f"{cid}.vina.log"
         argv = [
             vina_bin,
             "--receptor",
-            str(receptor_pdbqt),
+            str(receptor_in),
             "--ligand",
             str(ligand_pdbqt),
             "--center_x",
@@ -169,15 +196,17 @@ class VinaDockingBackend:
             str(int(exhaustiveness)),
             "--out",
             str(out_pose),
-            "--log",
-            str(out_log),
         ]
         cp = run_cmd(argv, timeout_s=600.0)
         if cp.returncode != 0:
             raise RuntimeError(
                 f"vina failed for {cid} (exit {cp.returncode}). stderr: {cp.stderr[:3000]}"
             )
-        log_text = out_log.read_text(encoding="utf-8", errors="replace") if out_log.exists() else (cp.stdout or "")
+        # Vina 1.1 allowed --log; 1.2+ writes the mode table to stdout.
+        log_text = "\n".join(
+            s for s in (cp.stdout, cp.stderr) if s
+        )
+        out_log.write_text(log_text, encoding="utf-8", errors="replace")
         score = parse_vina_score(log_text)
         return {
             "compound_id": cid,

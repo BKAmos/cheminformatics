@@ -39,7 +39,11 @@ def test_fpocket_binary_parses_pockets(tmp_path: Path, repo_root: Path, monkeypa
     )
 
     def fake_run_fpocket_subprocess(
-        *, receptor_pdb: Path, fpocket_raw: Path, executable: str | None = None, timeout_s: float = 600.0
+        *,
+        receptor_pdb: Path,
+        fpocket_raw: Path,
+        executable: str | None = None,
+        timeout_s: float = 600.0,
     ) -> None:
         out = fpocket_raw / "toy_out" / "pockets"
         out.mkdir(parents=True, exist_ok=True)

@@ -34,5 +34,11 @@ def run_dock_wt(paths: dict[str, Path], cfg: WorkflowConfig) -> Path:
         None if multi else phys,
         None if multi else ml,
     )
-    log_step(paths, "docking_wt", time.perf_counter() - t0, input_count=len(pool), output_count=len(merged))
+    log_step(
+        paths,
+        "docking_wt",
+        time.perf_counter() - t0,
+        input_count=len(pool),
+        output_count=len(merged),
+    )
     return out
