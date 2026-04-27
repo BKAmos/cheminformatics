@@ -11,7 +11,8 @@ from workflow.backends.diffdock import DiffDockBackend
 
 
 def test_diffdock_backend_writes_scores(tmp_path: Path) -> None:
-    (tmp_path / "rec.pdb").write_text("ATOM      1  N   ALA A   1       0.0   0.0   0.0\n", encoding="utf-8")
+    pdb_line = "ATOM      1  N   ALA A   1       0.0   0.0   0.0\n"
+    (tmp_path / "rec.pdb").write_text(pdb_line, encoding="utf-8")
     pocket = tmp_path / "pocket_spec.json"
     pocket.write_text(
         json.dumps(

@@ -45,9 +45,9 @@ def _score_one_diffdock(
             env["OUT_POSE_PDB"] = str(tdp)
             p = run_cmd([ext_cmd], timeout_s=1200.0, env=env)
             if p.returncode != 0 or not tdp.is_file():
+                err_tail = (p.stderr or "")[:500]
                 raise RuntimeError(
-                    f"DiffDock command failed for {cid}: code={p.returncode} "
-                    f"stderr={p.stderr!r[:500]}"
+                    f"DiffDock command failed for {cid}: code={p.returncode} stderr={err_tail!r}"
                 )
             shutil.copy2(tdp, pose)
     else:
