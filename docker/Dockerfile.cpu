@@ -1,0 +1,12 @@
+# CPU-oriented image: Python package + configs + toy data for smoke CMD.
+FROM python:3.11-slim-bookworm
+
+WORKDIR /app
+COPY pyproject.toml README.md LICENSE ./
+COPY src ./src
+COPY configs ./configs
+COPY data ./data
+RUN pip install --no-cache-dir -e .
+
+# docker run --memory=4g --cpus=2 -v "$(pwd)/.runs:/tmp/run" ... workflow run --config configs/ci.yaml --run-dir /tmp/run
+CMD ["workflow", "run", "--config", "configs/ci.yaml", "--run-dir", "/tmp/run"]

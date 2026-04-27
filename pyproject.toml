@@ -1,0 +1,54 @@
+[build-system]
+requires = ["setuptools>=61", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "chem-workflow"
+version = "0.1.0"
+description = "PubChem 2D → Tier filters → pocket → docking → evolution workflow"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+dependencies = [
+    "pydantic>=2.5",
+    "pydantic-settings>=2.1",
+    "pyyaml>=6.0",
+    "httpx>=0.26",
+    "typer>=0.9",
+    "pandas>=2.1",
+    "pyarrow>=14.0",
+    "langgraph>=0.2",
+    "langchain-core>=0.2",
+]
+
+[project.optional-dependencies]
+chem = [
+    "rdkit>=2023.9.1",
+]
+dev = [
+    "pytest>=7.4",
+    "pytest-httpx>=0.27",
+    "ruff>=0.1",
+    "matplotlib>=3.8",
+]
+mutate = [
+    "openmm>=8.0",
+    "pdbfixer>=1.9",
+]
+
+[project.scripts]
+workflow = "workflow.cli:app"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

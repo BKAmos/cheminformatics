@@ -1,0 +1,19 @@
+name: chem-workflow
+channels:
+  - conda-forge
+dependencies:
+  - python>=3.11
+  - pip
+  - rdkit
+  - openbabel
+  - pandas
+  - pyarrow
+  - matplotlib
+  - pip:
+    - pydantic>=2.5
+    - pydantic-settings>=2.1
+    - pyyaml>=6.0
+    - httpx>=0.26
+    - typer>=0.9
+    - langgraph>=0.2
+    - langchain-core>=0.2

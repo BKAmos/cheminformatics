@@ -1,0 +1,38 @@
+cases:
+  - case_id: toy_1
+    kind: static
+    expect_pass: true
+  - case_id: toy_2
+    kind: static
+    expect_pass: true
+  - case_id: ranking_invariant
+    kind: parquet_invariant
+    path: ranking_sample.parquet
+    score_column: composite_rank_score
+    expect_sorted_descending: true
+    expect_pass: true
+  - case_id: ci_run_artifacts
+    kind: artifacts
+    expect_pass: true
+    required_files:
+      - summary/summary.json
+      - summary/candidates_ranked.parquet
+      - poses/wt/docking_scores.parquet
+    required_json_keys:
+      path: summary/summary.json
+      keys:
+        - n_pubchem_hits
+        - n_docked_wt
+        - n_ranked_candidates
+    required_parquet_columns:
+      path: summary/candidates_ranked.parquet
+      columns:
+        - compound_id
+        - composite_rank_score
+        - rationale
+      non_empty: true
+  - case_id: synthetic_should_fail
+    kind: artifacts
+    expect_pass: false
+    required_files:
+      - this_file_must_not_exist_8f3a2c1d.xyz

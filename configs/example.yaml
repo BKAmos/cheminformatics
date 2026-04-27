@@ -1,0 +1,39 @@
+library_csv: ../data/library.csv
+receptor_pdb: ../data/toy.pdb
+pairs: []
+dry_run: false
+profile: default
+skip_evolution: true
+skip_mutation: true
+generate_plots: false
+
+resources:
+  max_parallel_http: 2
+  max_parallel_docks: 1
+  filter_chunk_size: 500
+  tier_batch_size: 500
+  pubchem_page_or_batch_limit: 10000
+  ligand_prep_batch_size: 200
+  evolution_eval_batch_size: 50
+
+pubchem:
+  similarity_threshold: 0.85
+  max_hits_per_query: 50
+  base_url: https://pubchem.ncbi.nlm.nih.gov/rest/pug
+
+dock_pool:
+  mode: max_compounds
+  max_compounds_to_dock: 500
+  top_n_by_2d_score: null
+
+fpocket:
+  use_stub_box: true
+  stub_center: [0.0, 0.0, 0.0]
+  stub_size: [20.0, 20.0, 20.0]
+
+# physics_only | ml_only | both (run classical + ML in tandem)
+docking:
+  mode: physics_only
+  physics_backend: mock
+  ml_backend: mock
+  ranking_when_both: physics
