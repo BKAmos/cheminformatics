@@ -11,6 +11,12 @@ cases:
     score_column: composite_rank_score
     expect_sorted_descending: true
     expect_pass: true
+  - case_id: pockets_ranked_columns
+    kind: parquet_invariant
+    path: pockets_ranked_sample.parquet
+    score_column: rank
+    expect_sorted_descending: false
+    expect_pass: true
   - case_id: ci_run_artifacts
     kind: artifacts
     expect_pass: true

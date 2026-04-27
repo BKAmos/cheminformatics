@@ -6,6 +6,7 @@ skip_mutation: true
 dry_run: false
 
 resources:
+  # Raise only after single-worker E2E runs (stub → fpocket → Vina) are known good.
   max_parallel_docks: 1
   max_parallel_http: 1
 

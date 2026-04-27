@@ -1,0 +1,31 @@
+# Exercise DiffDock backend (placeholder scores) without physics — validates ml_only + downstream summary.
+# Optional: set CHEM_WORKFLOW_DIFFDOCK_CMD to a wrapper that writes OUT_POSE_PDB from LIGAND_SMILES.
+
+library_csv: ../data/library.csv
+receptor_pdb: ../data/toy.pdb
+profile: default
+skip_evolution: true
+skip_mutation: true
+dry_run: false
+
+resources:
+  max_parallel_docks: 1
+  max_parallel_http: 1
+
+pubchem:
+  max_hits_per_query: 4
+  similarity_threshold: 0.7
+
+dock_pool:
+  mode: max_compounds
+  max_compounds_to_dock: 3
+
+fpocket:
+  use_stub_box: true
+  stub_center: [0.0, 0.0, 0.0]
+  stub_size: [12.0, 12.0, 12.0]
+
+docking:
+  mode: ml_only
+  physics_backend: mock
+  ml_backend: diffdock

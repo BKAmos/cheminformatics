@@ -36,6 +36,22 @@ def _ensure_ground_truth_parquet_fixtures() -> None:
     sample = d / "ranking_sample.parquet"
     if not sample.is_file():
         pd.DataFrame({"composite_rank_score": [10.0, 7.5, 3.0]}).to_parquet(sample, index=False)
+    pockets = d / "pockets_ranked_sample.parquet"
+    if not pockets.is_file():
+        pd.DataFrame(
+            {
+                "rank": [1, 2],
+                "pocket_id": [1, 2],
+                "fpocket_score": [12.0, 9.0],
+                "center_x": [0.0, 1.0],
+                "center_y": [0.0, 0.0],
+                "center_z": [0.0, 0.0],
+                "size_x": [10.0, 10.0],
+                "size_y": [10.0, 10.0],
+                "size_z": [10.0, 10.0],
+                "spec_file": ["pocket_spec.json", "pocket_specs/pocket_2.json"],
+            }
+        ).to_parquet(pockets, index=False)
 
 
 @pytest.fixture

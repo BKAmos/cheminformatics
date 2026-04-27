@@ -1,12 +1,39 @@
-# CPU-oriented image: Python package + configs + toy data for smoke CMD.
-FROM python:3.11-slim-bookworm
+# Reproducible CPU image: Python 3.11, chem-workflow, fpocket, Vina, Open Babel (conda-forge).
+# Build: docker build -f docker/Dockerfile.cpu -t chem-workflow:cpu .
+# Run baseline: docker run --rm -v "$PWD:/app" -w /app chem-workflow:cpu bash -lc \
+#   "workflow run --config configs/ci.yaml --run-dir .runs/local_baseline && workflow validate --suite ground_truth --run-dir .runs/local_baseline"
+#
+# Tests: docker run --rm -v "$PWD:/app" -w /app chem-workflow:cpu bash -lc "python -m ruff check src tests && python -m pytest -q"
 
+# Pinned image digest can be set in CI for supply-chain pinning.
+# Image list: https://hub.docker.com/r/mambaorg/micromamba/tags
+ARG MAMBA_DOCKERFILE_ACTIVATE=1
+FROM mambaorg/micromamba:latest
+
+USER root
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        build-essential \
+        ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+USER $MAMBA_USER
 WORKDIR /app
-COPY pyproject.toml README.md LICENSE ./
-COPY src ./src
-COPY configs ./configs
-COPY data ./data
-RUN pip install --no-cache-dir -e .
 
-# docker run --memory=4g --cpus=2 -v "$(pwd)/.runs:/tmp/run" ... workflow run --config configs/ci.yaml --run-dir /tmp/run
+COPY --chown=$MAMBA_USER:$MAMBA_USER . .
+
+# fpocket, Vina, Open Babel — conda-forge; same env as app Python
+RUN micromamba install -y -n base -c conda-forge \
+    python=3.11 \
+    pip \
+    setuptools \
+    wheel \
+    openbabel \
+    fpocket \
+    vina \
+    && micromamba clean -afy
+
+RUN python -m pip install --no-cache-dir -e ".[dev]"
+
+# Default smoke (stub pocket, mock docking) — same as pre-image CMD
 CMD ["workflow", "run", "--config", "configs/ci.yaml", "--run-dir", "/tmp/run"]

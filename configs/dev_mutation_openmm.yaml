@@ -1,0 +1,38 @@
+# One point mutation (ALA A1 → GLY) with mock docking — requires: pip install -e ".[mutate]"
+# Compare WT vs mutant in summary/candidates_ranked.parquet (delta_score, composite_rank_score).
+# Toy receptor has a single ALA; PDBFixer applies the mutation to receptor_prepared.pdb.
+
+library_csv: ../data/library.csv
+receptor_pdb: ../data/toy.pdb
+profile: default
+skip_evolution: true
+skip_mutation: false
+dry_run: false
+
+mutation:
+  residues:
+    - chain: A
+      resseq: 1
+      to_aa: GLY
+
+resources:
+  max_parallel_docks: 1
+  max_parallel_http: 1
+
+pubchem:
+  max_hits_per_query: 5
+  similarity_threshold: 0.7
+
+dock_pool:
+  mode: max_compounds
+  max_compounds_to_dock: 5
+
+fpocket:
+  use_stub_box: true
+  stub_center: [0.0, 0.0, 0.0]
+  stub_size: [15.0, 15.0, 15.0]
+
+docking:
+  mode: physics_only
+  physics_backend: mock
+  ml_backend: mock
